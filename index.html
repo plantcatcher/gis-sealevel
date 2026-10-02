@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>海平面模拟实验室 - 星球小捕手</title>
+<meta name="description" content="交互式海平面上升模拟器，基于 DEM 地形数据与 IPCC AR6 排放情景，可视化全球海平面上升对沿海城市的影响。拖动滑块查看 0-500m 海平面上升后的淹没范围、受影响人口及冰盖融化趋势。" />
+<meta name="keywords" content="海平面上升,气候变化,IPCC,沿海城市淹没,海平面模拟,全球变暖,格陵兰冰盖,南极冰盖,DEM地形数据,星球小捕手" />
+<meta name="author" content="星球小捕手" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://planetgis.cn" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="海平面模拟实验室 - 星球小捕手" />
+<meta property="og:description" content="交互式海平面上升模拟器，基于 DEM 地形数据与 IPCC AR6 排放情景，可视化全球海平面上升对沿海城市的影响。" />
+<meta property="og:url" content="https://planetgis.cn" />
+<meta property="og:site_name" content="星球小捕手" />
+<meta property="og:locale" content="zh_CN" />
+<meta property="og:image" content="assets/images/favicon.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="海平面模拟实验室 - 星球小捕手" />
+<meta name="twitter:description" content="交互式海平面上升模拟器，基于 DEM 地形数据与 IPCC AR6 排放情景，可视化全球海平面上升对沿海城市的影响。" />
+<meta name="twitter:image" content="assets/images/favicon.png" />
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "海平面模拟实验室",
+  "description": "交互式海平面上升模拟器，基于 DEM 地形数据与 IPCC AR6 排放情景，提供海平面上升可视化体验。",
+  "url": "https://planetgis.cn",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web",
+  "inLanguage": "zh-CN",
+  "author": {
+    "@type": "Organization",
+    "name": "星球小捕手",
+    "url": "https://planetgis.cn"
+  },
+  "about": {
+    "@type": "Thing",
+    "name": "海平面上升",
+    "description": "全球海平面上升的成因、影响及应对措施"
+  },
+  "isAccessibleForFree": true
+}
+</script>
+
+<script src="lib/chartjs/chart.umd.min.js"></script>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+<script src="lib/leaflet/leaflet.js"></script>
+<link rel="stylesheet" href="style.css?v=20261003" />
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z04MECQKPK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Z04MECQKPK');
+</script>
+</head>
+<body>
+
+<!-- Skip to content for accessibility -->
+<a href="#main-content" class="skip-link">跳转到主要内容</a>
+
+<!-- ===== TOP BAR ===== -->
+<header data-component="Top Bar" data-od-id="topbar">
+  <div class="topbar-brand">
+    <a href="https://planetgis.cn" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;color:var(--fg);text-decoration:none;">
+      <img src="assets/images/favicon.png" alt="星球小捕手 Logo" width="22" height="22" style="border-radius:4px;" />
+      海平面模拟实验室 - 星球小捕手
+    </a>
+  </div>
+  <nav>
+    <ul class="topbar-nav" id="topbarNav">
+      <li><a href="#map-section" class="active">模拟</a></li>
+      <li><a href="#chart-section">数据</a></li>
+      <li><a href="#narrative-section">科普</a></li>
+      <li><a href="#articles-section">文章</a></li>
+      <li><a href="#changelog-section">日志</a></li>
+      <li><a href="#footer">关于</a></li>
+    </ul>
+  </nav>
+  <button class="nav-toggle" id="navToggle" aria-label="切换菜单" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<main id="main-content">
+
+<!-- ===== HERO MAP SECTION ===== -->
+<section data-component="Map Simulator" data-od-id="hero-map" id="map-section">
+  <div class="hero-layout">
+    <div class="map-container" id="mapContainer">
+      <div id="leafletMap" role="img" aria-label="全球海岸线海平面上升模拟地图"></div>
+
+      <!-- Loading Indicator -->
+      <div class="map-loading" id="mapLoading">
+        <div class="map-loading-spinner"></div>
+        <span class="map-loading-text">正在加载地形数据...</span>
+      </div>
+
+      <!-- Basemap Switcher -->
+      <div class="basemap-switcher">
+        <button class="basemap-btn" data-basemap="terrain">地形晕渲</button>
+        <button class="basemap-btn" data-basemap="vector">矢量底图</button>
+        <button class="basemap-btn" data-basemap="satellite">卫星影像</button>
+      </div>
+
+      <div class="map-label">
+        <span class="dot"></span>
+        实时模拟中 · 教育演示数据
+      </div>
+      <div class="disclaimer-badge">数据仅供教育演示，非精确预测</div>
+
+      <!-- Scroll hint -->
+      <button class="scroll-hint" id="scrollHint" aria-label="向下滚动查看数据">
+        <span class="scroll-hint-text">向下滚动查看数据</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel" data-component="Control Panel" data-od-id="controls">
+      <div class="panel-title">模拟参数</div>
+
+      <div class="control-group">
+        <span class="control-label">海平面上升高度</span>
+        <div class="year-display" id="heightDisplay">0<span style="font-size:20px;color:var(--fg-muted);margin-left:4px;">m</span></div>
+        <div class="year-sub">相对当前海平面基准</div>
+        <input type="range" id="heightSlider" min="0" max="500" value="0" step="1" aria-label="选择海平面上升高度（米）">
+        <div class="range-labels"><span>0m</span><span>100m</span><span>250m</span><span>500m</span></div>
+      </div>
+
+      <div class="control-group">
+        <span class="control-label">快速预设</span>
+        <div class="preset-buttons">
+          <button class="preset-btn active" data-height="0"><span class="preset-btn-val">0m</span><span class="preset-btn-desc">当前海平面</span></button>
+          <button class="preset-btn" data-height="1"><span class="preset-btn-val">1m</span><span class="preset-btn-desc">IPCC 乐观</span></button>
+          <button class="preset-btn" data-height="5"><span class="preset-btn-val">5m</span><span class="preset-btn-desc">风暴潮级别</span></button>
+          <button class="preset-btn" data-height="10"><span class="preset-btn-val">10m</span><span class="preset-btn-desc">沿海城市受威胁</span></button>
+          <button class="preset-btn" data-height="25"><span class="preset-btn-val">25m</span><span class="preset-btn-desc">大面积淹没</span></button>
+          <button class="preset-btn" data-height="50"><span class="preset-btn-val">50m</span><span class="preset-btn-desc">格陵兰融化</span></button>
+          <button class="preset-btn" data-height="100"><span class="preset-btn-val">100m</span><span class="preset-btn-desc">灾难性融化</span></button>
+          <button class="preset-btn" data-height="200"><span class="preset-btn-val">200m</span><span class="preset-btn-desc">极端假想</span></button>
+          <button class="preset-btn" data-height="500"><span class="preset-btn-val">500m</span><span class="preset-btn-desc">极端情景模拟</span></button>
+        </div>
+        <div class="gradient-bar-container">
+          <div class="gradient-bar">
+            <div class="gradient-indicator" id="gradientIndicator" style="left:0%"></div>
+          </div>
+          <div class="gradient-milestones">
+            <span>0m</span><span>1m</span><span>10m</span><span>50m</span><span>100m</span><span>500m</span>
+          </div>
+        </div>
+        <button class="autoplay-btn" id="autoplayBtn" aria-label="自动播放海平面上升动画">
+          <svg class="autoplay-icon-play" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="autoplay-icon-pause" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <span class="autoplay-text">自动播放模拟</span>
+        </button>
+      </div>
+
+      <div class="panel-stats">
+        <div class="panel-stat">
+          <div class="panel-stat-label">上升高度</div>
+          <div class="panel-stat-value" id="panelSLR">0<span class="panel-stat-unit">m</span></div>
+        </div>
+        <div class="panel-stat">
+          <div class="panel-stat-label">淹没海拔</div>
+          <div class="panel-stat-value" id="panelElev">0<span class="panel-stat-unit">m</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== METRICS ===== -->
+<section data-component="Metrics Panel" data-od-id="metrics">
+  <div class="section-header">
+    <h2 class="section-title">关键指标</h2>
+    <span class="section-subtitle" id="metricsSubtitle">海平面上升 0m · 基于当前模拟参数实时计算</span>
+  </div>
+  <div style="font-size:11px;color:var(--fg-muted);margin-bottom:8px;max-width:700px;line-height:1.5;">
+    以下指标根据您设置的海平面上升高度动态估算。数据模型参考 IPCC AR6 报告、NASA 海平面门户及全球主要冰盖融化速率研究。所有数值均为近似值，用于教育演示目的。
+  </div>
+  <div class="share-bar">
+    <span class="share-label">分享当前模拟：</span>
+    <button class="share-btn" data-share="wechat" aria-label="分享到微信" title="复制链接分享到微信">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1 .19-.554C23.156 18.437 24 16.753 24 14.926c0-3.234-2.876-5.876-6.54-6.068zm-2.715 3.18c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"/></svg>
+    </button>
+    <button class="share-btn" data-share="weibo" aria-label="分享到微博" title="分享到新浪微博">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10.098 20.323c-3.977.391-7.414-1.406-7.672-4.02-.259-2.609 2.759-5.047 6.74-5.441 3.979-.394 7.413 1.404 7.671 4.018.259 2.6-2.759 5.049-6.737 5.439v.004h-.002zM9.05 17.219c-.384.616-1.208.884-1.829.602-.612-.279-.793-.991-.406-1.593.379-.595 1.176-.861 1.793-.601.624.267.82.973.442 1.592zm1.27-1.627c-.141.237-.449.353-.689.253-.236-.09-.313-.36-.177-.586.138-.227.436-.346.672-.24.239.09.315.36.18.586l.014-.013zm.176-2.719c-1.893-.493-4.033.45-4.857 2.118-.836 1.704-.026 3.591 1.886 4.21 1.983.641 4.318-.341 5.132-2.179.8-1.793-.201-3.642-2.161-4.149zm7.563-1.224c-.346-.105-.57-.18-.405-.615.375-.977.42-1.804.005-2.404-.766-1.107-2.879-1.054-5.296-.011 0 0-.763.335-.571-.275.365-1.178.299-2.169-.271-2.736-1.337-1.337-4.9.045-7.974 3.085C2.284 11.682 1 14.273 1 16.479c0 4.219 5.404 6.786 10.69 6.786 6.931 0 11.543-4.026 11.543-7.224 0-1.921-1.621-3.009-3.083-3.467l-.001-.027zm2.135-5.302c-.69-.763-1.704-1.055-2.665-.836-.241.054-.391.291-.339.533.054.241.291.391.533.339.625-.14 1.298.046 1.757.553.459.507.601 1.196.388 1.804-.077.229.044.479.273.557.229.078.479-.043.557-.272.305-.872.107-1.932-.568-2.678h.064zm1.775-1.593c-1.368-1.514-3.384-2.084-5.242-1.669-.252.056-.41.305-.354.557.056.252.305.41.557.354 1.564-.349 3.232.12 4.354 1.36 1.121 1.241 1.428 2.933.892 4.435-.085.237.039.498.276.583.237.085.498-.039.583-.276.646-1.806.293-3.856-1.066-5.344z"/></svg>
+    </button>
+    <button class="share-btn" data-share="twitter" aria-label="分享到 Twitter" title="分享到 Twitter/X">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </button>
+    <button class="share-btn" data-share="link" aria-label="复制链接" title="复制链接地址">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </button>
+    <span class="share-feedback" id="shareFeedback"></span>
+  </div>
+  <div class="metrics-grid" id="metricsGrid">
+    <div class="metric-card" id="metricSeaLevel">
+      <div class="metric-icon">
+        <svg viewBox="0 0 24 24"><path d="M2 15c2-1 4-2 6-1s4 2 6 1 4-2 6-1"/><path d="M2 19c2-1 4-2 6-1s4 2 6 1 4-2 6-1"/></svg>
+      </div>
+      <div class="metric-label">海平面上升幅度</div>
+      <div class="metric-value" id="metricSLR">0<span class="metric-unit">mm</span></div>
+      <div class="metric-spark" id="sparkSLR"></div>
+      <div class="metric-desc">相对 1990-2014 年平均海平面基准的上升高度。20 世纪全球海平面平均上升约 15cm，当前加速趋势下 2100 年预计再升 0.3-1.1m（IPCC AR6）。</div>
+      <div class="metric-explain"><strong>什么是海平面上升幅度？</strong> 全球平均海平面相对于基准期（1990-2014 年）平均高度的正向偏移量，是衡量海洋体积变化的综合指标。由海水热膨胀与陆地冰川/冰盖融水注入共同贡献。本数值由用户拖动滑块直接设定，其他指标均基于此推算。</div>
+    </div>
+    <div class="metric-card" id="metricTemp">
+      <div class="metric-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+      </div>
+      <div class="metric-label">全球均温升幅</div>
+      <div class="metric-value" id="metricTempVal">0.0<span class="metric-unit">°C</span></div>
+      <div class="metric-spark" id="sparkTemp"></div>
+      <div class="metric-desc">全球平均气温较工业化前（1850-1900 年）的升高估值。《巴黎协定》目标为控制在 1.5°C 以内；当前已升温约 1.2°C，每升高 1°C 海平面约上升 2.3m。</div>
+      <div class="metric-explain"><strong>什么是均温升幅？</strong> 全球平均气温相对于工业化前（1850-1900 年）基准的偏移量，是衡量气候变化程度的核心指标。本模拟根据海平面上升高度反推对应升温幅度（气候敏感度约 0.3°C/m），为估算值而非精确预测。</div>
+    </div>
+    <div class="metric-card" id="metricPop">
+      <div class="metric-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="metric-label">受影响人口</div>
+      <div class="metric-value" id="metricPopVal">0<span class="metric-unit">亿人</span></div>
+      <div class="metric-spark" id="sparkPop"></div>
+      <div class="metric-desc">生活在海拔低于当前模拟海平面上升高度的沿海地区人口估算。目前全球约 6.8 亿人居住在距海岸 100km 以内、海拔 10m 以下的低洼区域（2020 年数据）。</div>
+      <div class="metric-explain"><strong>什么是受影响人口？</strong> 居住在海拔低于当前模拟海平面高度的沿海地区人口总数估算。基于全球沿海高程数据与人口密度分布，按海拔分层累加得出。实际受影响人数还取决于防洪设施、人口迁移等复杂因素。</div>
+    </div>
+    <div class="metric-card" id="metricIce">
+      <div class="metric-icon">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>
+      </div>
+      <div class="metric-label">冰盖融化速率</div>
+      <div class="metric-value" id="metricIceVal">0<span class="metric-unit">Gt/年</span></div>
+      <div class="metric-spark" id="sparkIce"></div>
+      <div class="metric-desc">格陵兰与南极冰盖年度质量损失估算（GRACE/GRACE-FO 卫星重力测量数据外推）。2002-2020 年格陵兰年均损失约 270 Gt，南极约 150 Gt，合计贡献海平面上升约 1.2mm/年。</div>
+      <div class="metric-explain"><strong>什么是 Gt？</strong> Gt（Gigatonne，吉吨）= 10 亿吨 = 10¹² 千克，是衡量冰盖质量变化的标准单位。换算关系：约 360 Gt 冰融化可使全球海平面上升 1mm。本数值为格陵兰与南极冰盖年度质量损失之和。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TREND CHART ===== -->
+<section data-component="Trend Chart" data-od-id="trend-chart" id="chart-section">
+  <div class="section-header">
+    <h2 class="section-title">历史与预测趋势</h2>
+    <span class="section-subtitle">全球平均海平面变化 (1900–2100)</span>
+  </div>
+  <div class="chart-container">
+    <div class="chart-tabs" id="chartTabs">
+      <button class="chart-tab" data-rcp="2.6">RCP 2.6</button>
+      <button class="chart-tab" data-rcp="4.5">RCP 4.5</button>
+      <button class="chart-tab" data-rcp="8.5">RCP 8.5</button>
+      <button class="chart-tab active" data-rcp="all">全部对比</button>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="trendChart" role="img" aria-label="全球平均海平面变化趋势图：展示1900至2100年不同排放情景下的海平面变化预测"></canvas>
+    </div>
+    <div class="chart-note">数据来源：IPCC AR6、NASA 海平面门户 · 预测区间基于模型集合中位数，实际变化可能因区域差异而不同</div>
+  </div>
+</section>
+
+<!-- ===== CITY IMPACT ===== -->
+<section data-component="City Impact" data-od-id="city-impact">
+  <div class="section-header">
+    <h2 class="section-title">城市影响对比</h2>
+    <span class="section-subtitle" id="citySubtitle">当前上升高度下的城市影响</span>
+  </div>
+  <div class="city-filter-bar">
+    <div class="city-search-wrapper">
+      <svg class="city-search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="citySearch" class="city-search-input" placeholder="搜索城市名称或国家..." aria-label="搜索城市" />
+    </div>
+    <div class="city-filter-buttons">
+      <button class="city-filter-btn active" data-filter="all">全部</button>
+      <button class="city-filter-btn" data-filter="flooded">已淹没</button>
+      <button class="city-filter-btn" data-filter="high">高风险</button>
+      <button class="city-filter-btn" data-filter="medium">中风险</button>
+      <button class="city-filter-btn" data-filter="low">安全</button>
+    </div>
+  </div>
+  <div class="city-grid" id="cityGrid">
+    <!-- Generated by JS -->
+  </div>
+  <div class="show-more-cities">
+    <button class="show-more-btn" id="showMoreCities">显示更多城市 (50)</button>
+  </div>
+</section>
+
+<!-- ===== SCIENCE NARRATIVE ===== -->
+<section data-component="Science Narrative" data-od-id="narrative" id="narrative-section">
+  <div class="section-header">
+    <h2 class="section-title">了解海平面上升</h2>
+    <span class="section-subtitle">从科学原理到行动方向</span>
+  </div>
+  <div class="narrative-grid">
+    <div class="narrative-card fade-in">
+      <div class="narrative-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="16" cy="16" r="10"/>
+          <path d="M16 6v10l6 4"/>
+          <path d="M8 28c2-2 5-3 8-3s6 1 8 3"/>
+        </svg>
+      </div>
+      <h3 class="narrative-title">海平面为什么在上升？</h3>
+      <p class="narrative-body">
+        海平面上升主要由两个因素驱动。第一是海水热膨胀：随着全球气温升高，海水温度上升，体积膨胀，导致海平面上升。第二是冰川和冰盖融化：格陵兰和南极冰盖正以加速的速率流失冰量，融水直接注入海洋。自 1900 年以来，全球平均海平面已上升约 20 厘米，而近三十年的上升速率是上世纪的两倍以上。
+      </p>
+    </div>
+    <div class="narrative-card fade-in">
+      <div class="narrative-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="var(--warn)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 28h24"/>
+          <path d="M8 28V16l4-8 4 4 4-6 4 10v12"/>
+          <circle cx="24" cy="8" r="3"/>
+        </svg>
+      </div>
+      <h3 class="narrative-title">不同情景意味着什么？</h3>
+      <p class="narrative-body">
+        RCP（代表性浓度路径）描述了未来温室气体排放的不同走向。RCP 2.6 代表全球积极减排，到 2100 年海平面上升约 0.4 米；RCP 4.5 代表中等排放路径，上升约 0.55 米；而 RCP 8.5 则是高排放情景，可能导致海平面上升超过 0.8 米。即使是最乐观的情景，沿海城市仍将面临显著的风暴潮和洪涝风险。每减少 0.1 米的海平面上升，都意味着数千万人免于流离失所。
+      </p>
+    </div>
+    <div class="narrative-card fade-in">
+      <div class="narrative-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="var(--success)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 4v8"/>
+          <path d="M8 8l8 4 8-4"/>
+          <path d="M8 16l8 4 8-4"/>
+          <path d="M8 24l8 4 8-4"/>
+        </svg>
+      </div>
+      <h3 class="narrative-title">我们可以做什么？</h3>
+      <p class="narrative-body">
+        应对海平面上升需要减缓与适应双管齐下。在减缓层面，加速向可再生能源转型、提高能源效率、保护森林和湿地是核心路径。在适应层面，沿海城市可以建设海堤与防洪设施、恢复红树林等自然缓冲带、调整城市规划避免在高风险区域建设。作为个人，减少碳足迹、关注气候政策、支持可持续消费，每一个行动都在为未来争取更多时间。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== EXTENDED READING / BLOG ARTICLES ===== -->
+<section data-component="Blog Articles" data-od-id="blog-articles" id="articles-section">
+  <div class="section-header">
+    <h2 class="section-title">延伸阅读</h2>
+    <span class="section-subtitle">来自星球小捕手博客的城市海平面模拟故事</span>
+  </div>
+  <div class="articles-intro">
+    模拟器展示的是全球视角的数据，而这些文章聚焦具体城市与地区——当海平面真的变化，济南、武汉、冰岛会变成什么样？点击卡片阅读完整故事。
+  </div>
+  <div class="articles-grid" id="articlesGrid">
+    <!-- Generated by JS -->
+  </div>
+  <div class="articles-more">
+    <a href="https://blog.planetgis.cn/categories/%E6%B5%B7%E5%B9%B3%E9%9D%A2%E6%A8%A1%E6%8B%9F/" target="_blank" rel="noopener" class="articles-more-link">
+      查看全部海平面模拟文章
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- ===== CHANGELOG / UPDATE LOG ===== -->
+<section data-component="Changelog" data-od-id="changelog" id="changelog-section">
+  <div class="section-header">
+    <h2 class="section-title">更新日志</h2>
+    <span class="section-subtitle">记录每一次迭代与改进</span>
+  </div>
+  <div class="changelog-layout">
+    <!-- Version filter sidebar -->
+    <aside class="changelog-sidebar" id="changelogSidebar">
+      <button class="changelog-filter-btn active" data-version="all">全部版本</button>
+    </aside>
+    <!-- Timeline -->
+    <div class="changelog-timeline" id="changelogTimeline">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer data-component="Footer" data-od-id="footer" id="footer">
+  <div class="footer-content">
+    <div class="footer-brand">
+      <div class="footer-brand-name">
+        <img src="assets/images/favicon.png" alt="" width="18" height="18" style="border-radius:3px;vertical-align:middle;margin-right:6px;" />
+        海平面模拟实验室 - 星球小捕手
+      </div>
+      <div class="footer-brand-desc">
+        致力于地理科普与环境变迁模拟，关注我们的地球，捕获星球之美。本模拟器基于 DEM 地形数据与 IPCC AR6 排放情景，提供交互式海平面上升可视化体验。
+      </div>
+      <div class="footer-contact">
+        微信：planetBS · 邮箱：<a href="mailto:planetcatcher@163.com">planetcatcher@163.com</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">快捷链接</div>
+      <div class="footer-links">
+        <a href="https://blog.planetgis.cn" target="_blank" rel="noopener">星球小捕手博客</a>
+        <a href="https://planetgis.cn" target="_blank" rel="noopener">地理实验室</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">数据来源</div>
+      <div class="footer-links">
+        <a href="https://www.ipcc.ch/report/ar6/" target="_blank" rel="noopener">IPCC AR6 报告</a>
+        <a href="https://sealevel.nasa.gov/" target="_blank" rel="noopener">NASA 海平面门户</a>
+        <a href="https://www.climate.gov/" target="_blank" rel="noopener">Climate.gov</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>数据仅供教育演示，非精确科学预测 · 基于 IPCC AR6 与 NASA 公开数据</span>
+    <div>
+      <a href="#" class="modal-trigger" data-modal="legalModal">法律声明</a>
+      <a href="#" class="modal-trigger" data-modal="privacyModal">隐私声明</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" id="backToTop" aria-label="返回顶部" title="返回顶部">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+</button>
+
+<!-- Legal Modal -->
+<div class="modal-overlay" id="legalModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">法律声明</h3>
+      <button class="modal-close" data-modal="legalModal" aria-label="关闭">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>1. 数据用途声明</strong></p>
+      <p>本网站（海平面模拟实验室）提供的所有海平面上升模拟数据、城市影响评估、人口估算及冰盖融化速率等信息，仅供教育演示和科普展示目的，不构成精确的科学预测或专业建议。实际海平面变化受多种复杂因素影响，请以权威科学机构的最新研究为准。</p>
+      <p><strong>2. 数据来源</strong></p>
+      <p>本站数据模型参考 IPCC AR6 报告、NASA 海平面门户及公开的科学研究文献。DEM 地形数据来自公开地图服务。所有引用均已标注来源，版权归原作者所有。</p>
+      <p><strong>3. 免责条款</strong></p>
+      <p>在适用法律允许的最大范围内，本网站不对使用本站信息所产生的任何直接或间接损失承担责任。用户应自行判断信息的适用性和准确性。</p>
+      <p><strong>4. 知识产权</strong></p>
+      <p>本网站的页面设计、交互代码及原创内容版权归"星球小捕手"所有。未经授权，不得复制、转载或用于商业用途。</p>
+      <p><strong>5. 联系方式</strong></p>
+      <p>如有任何法律相关问题，请联系邮箱：planetcatcher@163.com</p>
+    </div>
+  </div>
+</div>
+
+<!-- Privacy Modal -->
+<div class="modal-overlay" id="privacyModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">隐私声明</h3>
+      <button class="modal-close" data-modal="privacyModal" aria-label="关闭">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>1. 信息收集</strong></p>
+      <p>本网站不主动收集用户的个人身份信息。您在使用本站时无需注册或登录，所有模拟操作均在本地浏览器中完成。</p>
+      <p><strong>2. Cookie 与本地存储</strong></p>
+      <p>本网站不使用 Cookie 追踪用户行为。地图瓦片和地形数据的缓存由浏览器自动管理，可通过浏览器设置清除。</p>
+      <p><strong>3. 第三方服务</strong></p>
+      <p>本网站使用天地图（tianditu.gov.cn）提供地图底图服务，使用 AWS S3 提供地形高程数据。这些第三方服务可能会记录访问日志，其隐私政策请参阅 respective 服务提供方的说明。</p>
+      <p><strong>4. 数据安全</strong></p>
+      <p>由于本网站不存储用户个人数据，因此不存在用户数据泄露风险。地图交互数据仅在浏览器内存中临时处理，关闭页面后即被清除。</p>
+      <p><strong>5. 联系方式</strong></p>
+      <p>如有任何隐私相关问题，请联系邮箱：planetcatcher@163.com</p>
+    </div>
+  </div>
+</div>
+
+<script src="main.js?v=20260801d"></script>
+</body>
+</html>
