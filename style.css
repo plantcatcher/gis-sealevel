@@ -187,6 +187,9 @@ section {
 .leaflet-tile-pane {
   filter: brightness(0.88) saturate(1.2) contrast(1.04);
 }
+.leaflet-top .leaflet-control-zoom {
+  margin-top: 68px;
+}
 .leaflet-control-zoom a {
   background: var(--surface-solid) !important;
   color: var(--fg) !important;
@@ -1896,5 +1899,41 @@ input[type="range"]::-moz-range-thumb {
   }
   .changelog-entry-header {
     gap: var(--space-sm);
+  }
+}
+
+/* ============================================================
+   MOBILE OVERRIDES — appended LAST so they win over the base
+   rules for .basemap-switcher / .scroll-hint / .disclaimer-badge
+   that are declared AFTER the main @media block and were
+   overriding the mobile positioning. Fixes: basemap stretched
+   to full height, scroll-hint not hidden, disclaimer overlap.
+   ============================================================ */
+@media (max-width: 900px) {
+  .basemap-switcher {
+    top: 64px !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: 8px !important;
+  }
+  .disclaimer-badge {
+    top: 110px !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: 8px !important;
+  }
+  .scroll-hint {
+    display: none !important;
+  }
+  /* Control panel: fixed bottom sheet that fades out once the user
+     scrolls past the map hero (see main.js scroll handler) */
+  .control-panel {
+    position: fixed;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .control-panel.panel-hidden {
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
   }
 }

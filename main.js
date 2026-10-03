@@ -1443,3 +1443,23 @@
     if (metrics) metrics.scrollIntoView({ behavior: 'smooth' });
   });
 })();
+
+/* ===== MOBILE: hide floating control panel once scrolled past hero ===== */
+(function() {
+  var panel = document.querySelector('.control-panel');
+  var mapSection = document.getElementById('map-section');
+  if (!panel || !mapSection) return;
+  var ticking = false;
+  function updatePanel() {
+    ticking = false;
+    if (window.innerWidth <= 900 && window.scrollY > 120) {
+      panel.classList.add('panel-hidden');
+    } else {
+      panel.classList.remove('panel-hidden');
+    }
+  }
+  window.addEventListener('scroll', function() {
+    if (!ticking) { ticking = true; requestAnimationFrame(updatePanel); }
+  }, { passive: true });
+  updatePanel();
+})();
