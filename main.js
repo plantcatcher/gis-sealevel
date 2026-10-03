@@ -153,9 +153,11 @@
   const citySubtitle = document.getElementById('citySubtitle');
 
   // ===== LEAFLET MAP INIT =====
+  // On mobile (narrow viewport), default to a zoomed-in view of China
+  const isNarrowView = window.innerWidth <= 768;
   const leafletMap = L.map('leafletMap', {
-    center: [20, 20],
-    zoom: 2,
+    center: isNarrowView ? [35, 105] : [20, 20],
+    zoom: isNarrowView ? 4 : 2,
     minZoom: 2,
     maxZoom: 8,
     zoomControl: true,
@@ -184,15 +186,20 @@
     )
   };
 
+  // Separate pane for the Chinese annotation layer so the basemap darkening
+  // filter (applied to the tile pane) does not dim the labels.
+  leafletMap.createPane('annotationPane');
+  leafletMap.getPane('annotationPane').style.zIndex = 350;
+
   // Chinese annotation layer (always visible on top)
   const annotationLayer = L.tileLayer(
     tdBase + 'cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILECOL={x}&TILEROW={y}&TILEMATRIX={z}&tk=' + tiandituKey,
-    { subdomains: tdSubs, maxZoom: 18 }
+    { subdomains: tdSubs, maxZoom: 18, pane: 'annotationPane' }
   );
 
-  // Default basemap: terrain hillshade
-  let currentBasemap = 'terrain';
-  baseLayers.terrain.addTo(leafletMap);
+  // Default basemap: satellite imagery
+  let currentBasemap = 'satellite';
+  baseLayers.satellite.addTo(leafletMap);
   annotationLayer.addTo(leafletMap);
 
   // Basemap switching
@@ -214,9 +221,9 @@
     });
   });
 
-  // Set terrain as active by default
-  document.querySelector('.basemap-btn[data-basemap="terrain"]').classList.add('active');
-  document.querySelector('.basemap-btn[data-basemap="terrain"]').setAttribute('aria-pressed', 'true');
+  // Set satellite as active by default
+  document.querySelector('.basemap-btn[data-basemap="satellite"]').classList.add('active');
+  document.querySelector('.basemap-btn[data-basemap="satellite"]').setAttribute('aria-pressed', 'true');
 
   // City markers with real coordinates
   const cityMarkers = {
@@ -1011,7 +1018,7 @@
           // Stop at max
           toggleAutoplay();
         }
-      }, 150);
+      }, 450);
     }
   }
 
