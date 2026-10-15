@@ -1151,9 +1151,19 @@ input[type="range"]::-moz-range-thumb {
     left: var(--space-md);
     right: var(--space-md);
     width: auto;
-    max-height: 46vh;
+    /* 手机端只露出第一组（高度数值 + 滑块），「快速预设」及以下需滚动查看，
+       给主地图留出更多可视区域：内容起点 16px + 第一组 159px ≈ 175px */
+    max-height: 190px;
     gap: var(--space-md);
     padding: var(--space-md) var(--space-lg);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* 让内部滚动条在移动端更明显，提示卡片可上下滑动 */
+  .control-panel::-webkit-scrollbar { width: 4px; }
+  .control-panel::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.45);
+    border-radius: 2px;
   }
   .disclaimer-badge { top: 68px; left: var(--space-md); }
   /* Basemap switcher moves to top-right on mobile (panel occupies the bottom) */
