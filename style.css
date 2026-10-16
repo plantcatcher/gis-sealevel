@@ -1920,6 +1920,12 @@ input[type="range"]::-moz-range-thumb {
    to full height, scroll-hint not hidden, disclaimer overlap.
    ============================================================ */
 @media (max-width: 900px) {
+  /* 手机端汉堡按钮：强制显示（覆盖文件末尾基础规则里的 display:none，
+     因为那条基础规则在源码中更靠后、同优先级会胜出）。
+     同时把滑出导航面板的层级抬到底图切换等地图控件之上，避免被遮挡。 */
+  .nav-toggle { display: flex; }
+  .topbar-nav { z-index: 1200; }
+
   .basemap-switcher {
     top: 64px !important;
     bottom: auto !important;
